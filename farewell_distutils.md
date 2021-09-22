@@ -4,6 +4,8 @@ This is a discussion of Python packaging as of fall 2021.
 
 In part it is an introduction to what is changing, and a set of pointers for those who are interested to plan for these changes.
 
+## Not in this page
+
 To be clear, this discussion is about the official Python packaging options,
 designed to install source or binary packages from the [Python Package
 Index](https://pypi.org) or similar. We are not discussing other packaging
@@ -15,7 +17,121 @@ systems, where the two major options are:
   [Conda-forge](https://conda-forge.org) — e.g. `mamba install numpy`.
 * Your Linux distribution : e.g. `apt install python-numpy`).
 
-## What is changing
+## History
+
+### Distutils
+
+Imagine we start in a directory containing the code for `my_package`.
+
+In the beginning, there was:
+
+```bash
+python setup.py install
+```
+
+In this incarnation, Python has to execute the `setup.py` file in the current
+directory, to get the various settings that apply to the package being
+installed.
+
+The `setup.py` file would typically have a line like the following:
+
+```python
+from distutils.core import setup
+```
+
+The `setup.py` file then would call the `setup` function with arguments
+defining the files and other features of the package to install.
+
+Distutils' job is relatively simple with a pure-Python package, where the package contains only Python and data files, but no files in languages other than Python, which need to be compiled.  In that case Distutils functions as a simple build system, that works to discover a suitable compiler and assemble relevant options to the compiler, before calling the compiler and creating binary files, such as compiled Python extensions.
+
+This quickly became unsatisfactory as a way of installing Python packages,
+because it meant you had to download a source file archive or do a version
+control checkout, and then run this command from the resulting directory.  If
+the package had files for compilation, the user would need the relevant
+compilers to be set up correctly on their computer, a particularly difficult
+problem on Windows.
+
+Therefore Distutils is, in part, a binary build system, specific to Python.
+
+### Setuptools
+
+Later came the [setuptools package](https://pypi.org/project/setuptools).
+This had various useful — but sometimes controversial — extensions to
+`distutils`.   Setuptools could work as drop in replacement for Distutils
+(although it used parts of Distutils internally).  The `setup.py` function
+would now have:
+
+```python
+from setuptools import setup
+```
+
+This import gives more options for the `setup` function, and various other
+utilities for finding packages and so on.
+
+In this use, Setuptools acts as an enhanced version of Distutils — *Setuptools
+is Distutils+*.
+
+Setuptools also made a first step at solving the problem of having to download
+the code manually, by adding the `easy_install` command - as in `easy_install
+my_package`.  This would search the Python Package Index (PyPI) for code
+archive files, download, unpack and then install them.
+
+### Pip
+
+The next step important step was the release of the [pip
+utility](https://pypi.org/project/pip) Package Installer for Python.  This
+quickly replaced `easy_install` as the standard tool for installing Python
+packages from the command line, especially from PyPI, as in:
+
+```python
+pip install my_package
+```
+
+As for the earlier `easy_install`, this incantation will search for
+`my_package` in the PyPI, download it, unpack and install it correctly in
+a suitable directory on the Python search path.
+
+### Wheels
+
+The biggest problem at this point in the story was that Pip always installed
+Python packages by downloading a source archive, unpacking it, and then
+installing using a mechanism similar to `python setup.py install` above.  This
+was completely acceptable for pure Python packages, but impractical for larger
+packages that needed compilation.   Very common packages like Scipy or
+Matplotlib could take a very long time to compile, and have various external
+libraries that they relied on at compile-time. The external libraries had to
+be installed before running e.g. `pip install scipy`, in practice by reading
+and following the installation instructions.  These pre-installation steps
+were fairly complicated and fragile for an inexperienced user.  Again, because
+Pip called into Distutils to build compiled code, the user needed a suitable compiler already installed and configured on their system.
+
+The solution to this problem was the [Wheel format
+specification](https://www.python.org/dev/peps/pep-0427).  This defined
+a simple zip-file layout to store files that can be directly installed,
+including pre-built compiled binaries, such as Python extensions.
+
+After integration with Pip, and the PyPI, this meant that the release manager
+for packages like Scipy could build a Wheel for each platform and Python
+version they wanted to support.  Each platform and Python version results in
+wheel (zip file) with a different specific filename, so that Pip can identify the wheel corresponding to the system to which it is installing.  For example, the current (at time of writing) [Scipy 1.71 release on PyPI](https://pypi.org/project/scipy/1.7.1/) includes [many different Wheel files](https://pypi.org/project/scipy/1.7.1/#files), corresponding to the different platforms and Python versions, e.g.:
+
+* `scipy-1.7.1-cp37-cp37m-macosx_10_9_x86_64.whl` for any macOS >= version
+  10.9, and Python version 3.7 and
+* `scipy-1.7.1-cp39-cp39-win_amd64.whl` for 64-bit Windows and Python 3.9.
+
+The initial and current solution to the problem of external libraries was
+a crude one — identify all the linked external libraries for compiled binaries
+in the wheel, and copy these into the Wheel, while resetting the binary files
+to point to these library copies.  The [Delocate
+utility](https://github.com/matthew-brett/delocate) does this job on macOS,
+[auditwheel](https://github.com/pypa/auditwheel) does the equivalent job for
+Linux.  It appears that [Delvewheel](https://github.com/adang1345/delvewheel)
+does something similar on Windows, but it does not yet appear to be widely
+used. See the discussion
+[here](https://discuss.python.org/t/delocate-auditwheel-but-for-windows/2589)
+for more detail and more links.
+
+Then code within the `distutils` module would do the work of working out what files to install, and putting these files into the correct
 
 There have been various important developments in the official Python packaging
 system over the last 10 years. 

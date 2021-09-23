@@ -159,13 +159,18 @@ particular wheel name tells me and installer tools that this package has binary
 files that will run with CPython 3.6 and higher (`cp36-abi3`), on macOS 10.9 or
 higher (`macosx_10_9`), and on Intel or M1 architecture (`universal2`).
 
-After integration with Pip, and the PyPI, this meant that the release manager
-for packages like Scipy could build a Wheel for each platform and Python
-version they wanted to support.  Each platform and Python version results in
-wheel (zip file) with a different specific filename, so that Pip can identify
-the wheel corresponding to the system to which it is installing.  For example,
-the current (at time of writing) [Scipy 1.71 release on
-PyPI](https://pypi.org/project/scipy/1.7.1/) includes [many different Wheel
+
+All this is only to say, wheel files are simple zip files with the files that
+will be installed by copying to the Python library installation directories,
+and some metadata.
+
+After integration with Pip, and the PyPI, the advent of binary wheels meant
+that the release manager for packages like Scipy could build a Wheel for each
+platform and Python version they wanted to support.  Each platform and Python
+version results in wheel (zip file) with a different specific filename, so that
+Pip can identify the wheel corresponding to the system to which it is
+installing.  For example, the current (at time of writing) [Scipy 1.71 release
+on PyPI](https://pypi.org/project/scipy/1.7.1/) includes [many different Wheel
 files](https://pypi.org/project/scipy/1.7.1/#files), corresponding to the
 different platforms and Python versions, e.g.:
 

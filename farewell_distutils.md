@@ -2,12 +2,13 @@
 
 This is a discussion of Python packaging as of fall 2021.
 
-In part it is an introduction to what is changing, and a set of pointers for those who are interested to plan for these changes.
+In part it is an introduction to what is changing, and a set of pointers for
+those who are interested to plan for these changes.
 
 ## Not in this page
 
-To be clear, this discussion is about the official Python packaging options,
-designed to install source or binary packages from the [Python Package
+This discussion is about the official Python packaging options, designed to
+install source or binary packages from the [Python Package
 Index](https://pypi.org) or similar. We are not discussing other packaging
 systems, where the two major options are:
 
@@ -42,7 +43,12 @@ from distutils.core import setup
 The `setup.py` file then would call the `setup` function with arguments
 defining the files and other features of the package to install.
 
-Distutils' job is relatively simple with a pure-Python package, where the package contains only Python and data files, but no files in languages other than Python, which need to be compiled.  In that case Distutils functions as a simple build system, that works to discover a suitable compiler and assemble relevant options to the compiler, before calling the compiler and creating binary files, such as compiled Python extensions.
+Distutils' job is relatively simple with a pure-Python package, where the
+package contains only Python and data files, but no files in languages other
+than Python, which need to be compiled.  In that case Distutils functions as a
+simple build system, that works to discover a suitable compiler and assemble
+relevant options to the compiler, before calling the compiler and creating
+binary files, such as compiled Python extensions.
 
 This quickly became unsatisfactory as a way of installing Python packages,
 because it meant you had to download a source file archive or do a version
@@ -99,11 +105,12 @@ installing using a mechanism similar to `python setup.py install` above.  This
 was completely acceptable for pure Python packages, but impractical for larger
 packages that needed compilation.   Very common packages like Scipy or
 Matplotlib could take a very long time to compile, and have various external
-libraries that they relied on at compile-time. The external libraries had to
-be installed before running e.g. `pip install scipy`, in practice by reading
-and following the installation instructions.  These pre-installation steps
-were fairly complicated and fragile for an inexperienced user.  Again, because
-Pip called into Distutils to build compiled code, the user needed a suitable compiler already installed and configured on their system.
+libraries that they relied on at compile-time. The external libraries had to be
+installed before running e.g. `pip install scipy`, in practice by reading and
+following the installation instructions.  These pre-installation steps were
+fairly complicated and fragile for an inexperienced user.  Again, because Pip
+called into Distutils to build compiled code, the user needed a suitable
+compiler already installed and configured on their system.
 
 The solution to this problem was the [Wheel format
 specification](https://www.python.org/dev/peps/pep-0427).  This defined
@@ -113,7 +120,12 @@ including pre-built compiled binaries, such as Python extensions.
 After integration with Pip, and the PyPI, this meant that the release manager
 for packages like Scipy could build a Wheel for each platform and Python
 version they wanted to support.  Each platform and Python version results in
-wheel (zip file) with a different specific filename, so that Pip can identify the wheel corresponding to the system to which it is installing.  For example, the current (at time of writing) [Scipy 1.71 release on PyPI](https://pypi.org/project/scipy/1.7.1/) includes [many different Wheel files](https://pypi.org/project/scipy/1.7.1/#files), corresponding to the different platforms and Python versions, e.g.:
+wheel (zip file) with a different specific filename, so that Pip can identify
+the wheel corresponding to the system to which it is installing.  For example,
+the current (at time of writing) [Scipy 1.71 release on
+PyPI](https://pypi.org/project/scipy/1.7.1/) includes [many different Wheel
+files](https://pypi.org/project/scipy/1.7.1/#files), corresponding to the
+different platforms and Python versions, e.g.:
 
 * `scipy-1.7.1-cp37-cp37m-macosx_10_9_x86_64.whl` for any macOS >= version
   10.9, and Python version 3.7 and
@@ -123,15 +135,29 @@ The initial and current solution to the problem of external libraries was
 a crude one — identify all the linked external libraries for compiled binaries
 in the wheel, and copy these into the Wheel, while resetting the binary files
 to point to these library copies.  The [Delocate
-utility](https://github.com/matthew-brett/delocate) does this job on macOS,
-[auditwheel](https://github.com/pypa/auditwheel) does the equivalent job for
-Linux.  It appears that [Delvewheel](https://github.com/adang1345/delvewheel)
-does something similar on Windows, but it does not yet appear to be widely
-used. See the discussion
+utility](https://github.com/matthew-brett/delocate) does this job on macOS, and
+later, [auditwheel](https://github.com/pypa/auditwheel) implemented the
+equivalent functionality for Linux.
+[Delvewheel](https://github.com/adang1345/delvewheel) looks like it does
+something similar on Windows, but it does not yet appear to be widely used. See
+the discussion
 [here](https://discuss.python.org/t/delocate-auditwheel-but-for-windows/2589)
 for more detail and more links.
 
-Then code within the `distutils` module would do the work of working out what files to install, and putting these files into the correct
+## Separation of concerns
+
+The next big step in packaging has been the realization that Pip and Setuptools
+/ Distutils are doing various different tasks, and these tasks can and should
+be separable.
+
+There is a good discussion of this analysis in [PEP
+517](https://www.python.org/dev/peps/pep-0517/).  The PEP distinguishes the
+following roles, all ful
+
+Specif
+
+Then code within the `distutils` module would do the work of working out what
+files to install, and putting these files into the correct
 
 There have been various important developments in the official Python packaging
 system over the last 10 years. 

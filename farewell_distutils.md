@@ -9,8 +9,8 @@ those who are interested to plan for these changes.
 
 This discussion is about the official Python packaging options, designed to
 install source or binary packages from the [Python Package
-Index](https://pypi.org) or similar. We are not discussing other packaging
-systems, where the two major options are:
+Index](https://pypi.org) or similar. We are not discussing other
+packaging systems, where the two major options are:
 
 * [Conda](https://docs.conda.io) or (equivalently)
   [Mamba](https://mamba.readthedocs.io), installing from compatible package
@@ -23,6 +23,20 @@ systems, where the two major options are:
 ### Distutils
 
 Imagine we start in a directory containing the code for `my_package`.
+
+We will call this directory a *source tree*.  It contains all the source files
+necessary for installing the package on any compatible system.  It could be a
+checkout from version control, or the result of downloading a source code
+archive, and unpacking.
+
+For example, the Python Package Index will nearly always contain a `.tar.gz`
+or `.zip` file corresponding to each Python package.  This is the *sdist*
+(source distribution) file — or source code archive, as we have used the term
+above. When unpacked, it forms a *source tree*.  For example, the [1.21.2
+release of the Numpy package on PyPI](https://pypi.org/project/numpy/1.21.2/)
+contains a file
+[numpy-1.21.2.zip](https://files.pythonhosted.org/packages/3a/be/650f9c091ef71cb01d735775d554e068752d3ff63d7943b26316dc401749/numpy-1.21.2.zip).
+When unpacked, this is a source tree for the Numpy 1.21.2 release.
 
 In the beginning, there was:
 
@@ -81,6 +95,14 @@ Setuptools also made a first step at solving the problem of having to download
 the code manually, by adding the `easy_install` command - as in `easy_install
 my_package`.  This would search the Python Package Index (PyPI) for code
 archive files, download, unpack and then install them.
+
+[PEP 632](https://www.python.org/dev/peps/pep-0632) specifies that Python >=
+version 3.12 will no longer have the `distutils` module in the standard
+library, so we will no longer be able to do `import distutils`.  This will
+not have great practical effect on common usage, because Setuptools now
+carries the Distutils code, and continues to use its own copy for internal
+use. Setuptools will continue to be Distutils+ (with some [minor
+exceptions](https://www.python.org/dev/peps/pep-0632/#id23).
 
 ### Pip
 
@@ -144,76 +166,140 @@ the discussion
 [here](https://discuss.python.org/t/delocate-auditwheel-but-for-windows/2589)
 for more detail and more links.
 
+For example, Pip has a `wheel` subcommand that accepts a source tree directory (see above) and can build a wheel for the system on which Pip is running:
+
+```bash
+cd my_package
+pip wheel .
+```
+
 ## Separation of concerns
 
-The next big step in packaging has been the realization that Pip and Setuptools
-/ Distutils are doing various different tasks, and these tasks can and should
-be separable.
+The next big step in packaging has been the realization that Pip and
+Setuptools / Distutils are doing various different tasks, and these tasks can
+and should be separable.
 
-There is a good discussion of this analysis in [PEP
-517](https://www.python.org/dev/peps/pep-0517/).  The PEP distinguishes the
-following roles, all ful
+Tom Kluver's [Flit](https://flit.readthedocs.io) tool was an early development
+of this thinking.  Flit is a Python command line package that greatly
+simplifies builds of Sdists and wheels for pure-Python packages, and does not
+use Setuptools or Distutils.
 
-Specif
+[PEP 517](https://www.python.org/dev/peps/pep-0517/) has a good discussion of
+the analysis of various packaging concerns.  The PEP distinguishes the
+following tasks within the general umbrella of package management.
 
-Then code within the `distutils` module would do the work of working out what
-files to install, and putting these files into the correct
+* *Integration frontend* - a tool that accepts a set of package requirements,
+  and installs these packages on the user's system.  In the command `pip install numpy scipy`, pip is acting as an integration frontend.
+* *Build frontend* - a tool that accepts a source tree (such as an unpackaged
+  source code archive or version control checkout), and builds a Wheel or a
+  source distribution (Sdist). In the command `pip wheel ./`, Pip is acting as
+  a build frontend for a wheel. `flit build` has flit acting as a build
+  frontend for both wheels and Sdists.
+* *Build backend* - the tool that the *build frontend* is using to compile the
+  files comprising the wheel.   For most packages this will end up being
+  Setuptools (Distutils+), but there are other implementations we will come onto soon.
 
-There have been various important developments in the official Python packaging
-system over the last 10 years. 
+The PEP explains these terms well:
 
-The basic theme of these development is three-fold:
+> An *integration frontend* is a tool that users might run that takes a
+set of package requirements (e.g. a requirements.txt file) and attempts to
+update a working environment to satisfy those requirements. This may require
+locating, building, and installing a combination of wheels and sdists. In a
+command like `pip install lxml==2.4.0`, pip is acting as an integration
+frontend.
 
-* A move away from the classic `setup.py` executable file to define tasks and
-  metadata for packaging.
-* A move towards providing [binary wheels](
+> A *build frontend* is a tool that users might run that takes arbitrary
+source trees or source distributions and builds wheels from them. The actual
+building is done by each source tree's *build backend*. In a command like `pip
+wheel some-directory/`, pip is acting as a build
+frontend.
 
-### Where Python packaging is going
+Notice that the traditional use of Setuptools/Distutils+ means that Setuptools
+acts as both a build frontend and a build backend.
 
-`distutils` & co (`setuptools`, `numpy.distutils`) are still used by the vast majority of packages. However projects with very complex builds have moved away or never used it in the first place (e.g., cuDF/RAPIDS uses `scikit-build`, PyTorch uses CMake with a custom `setup.py` that invokes it, TensorFlow uses Bazel).
+PEP 517 was designed to define the standards that make it possible to write
+and use new build frontends and backends, so that we (the packagers) no longer
+have to use Setuptools (Distutils+).  In particular we can switch out to other build frontends and backends, and we can write our own.
 
-What has been changing in the Python packaging ecosystem itself is a move away from "assume a package uses setuptools" to a standards-based approach with hooks, so any package installer (like `pip`) can work with any build backend. Some of the most important PEPs and projects:
-- [PEP 517: A build-system independent format for source trees](https://www.python.org/dev/peps/pep-0517/)
-- [PEP 518: Specifying Minimum Build System Requirements for Python Projects](https://www.python.org/dev/peps/pep-0518/) 
-- [PEP 621: Storing project metadata in pyproject.toml](https://www.python.org/dev/peps/pep-0621/)
+Along with [PEP518](https://www.python.org/dev/peps/pep-0518), PEP517
+specifies sections in a configuration file called `pyproject.toml` that define
+the build frontend and backend.  PEP517 gives the example of using the `flit` tool as build frontend and build backend, with this configuration (adapted to modern Flit usage):
 
-The tl;dr of all those things is: you can specify all your project metadata and build-time and runtime dependencies in `pyproject.toml` and you can add a hook there that calls a Python function in a package you specify. When you do `pip install .`, pip finds the hook and invokes it - no `setup.py` needed.
+```yaml
+    [build-system]
+    # Defined by PEP 518; specifies package(s).
+    requires = ["flit"]
+    # Defined by this PEP; specifies Python object.
+    build-backend = "flit.buildapi"
+```
 
-There are also a number of small projects that have as purpose to be a standalone tool fulfilling one aspect of the build/package/install lifecycle, adhering to the PEPs linked above and not requiring `setuptools`: [build](https://github.com/pypa/build), [installer](https://github.com/pradyunsg/installer), [packaging](https://github.com/pypa/packaging).
+This example says that, in order to build wheels or source distributions (Sdists), we
 
+The build backend object must implement at least these Python callables:
 
-### Status of building SciPy with Meson
+* `build_sdist` (builds an sdist).
+* `build_wheel` (builds a wheel).
 
-I have a [branch named `meson` in my fork](https://github.com/rgommers/scipy/tree/meson) which makes a start, it builds a couple of modules, and uses C, C++, Cython and Fortran code. Look at the `meson.build` files there to get a sense of what things look like.
+For example, for the example above, the `main` object within `flit.api` must
+have calleables `build_wheel` and `build_sdist` (e.g.
+`flit.api.main.build_wheel`.
 
-To actually use that branch:
-- create a new conda env or virtualenv with all build dependencies (e.g., `conda env create -f environment.yml`)
-- Install Meson into it from this PR: https://github.com/mesonbuild/meson/pull/8706. That PR is a (working) WIP PR to add 1st class Cython support to Meson (see https://github.com/mesonbuild/meson/issues/8693 for context).
-- Run `meson setup build` followed by `ninja -C build`. This should successfully build the project. OR: run [mesondev.sh](https://github.com/rgommers/scipy/blob/meson/mesondev.sh) in the root of the repo to do both those steps plus install and run tests (e.g., it replaces our `runtests.py`)
+The build backend may also implement these callables:
 
-The next steps / main blockers are:
+* `get_requires_for_build_sdist` (returns list of specifications for packages
+  that should be installed before running `build_sdist` above).
+* `get_requires_for_build_wheel` (returns list of specifications for packages
+  that should be installed before running `build_wheel` above).
+* `prepare_metadata_for_build_wheel` (prepares `.dist-info` directory
+  containing wheel metadata for wheel to be build).
 
-1. We need to implement good BLAS/LAPACK support for Meson, so one can use that as a [dependency](https://mesonbuild.com/Dependencies.html#dependency-method). I've tried with conda + OpenBLAS, that seems to be straightforward via `pkg-config`. Complete support, e.g. Windows, MKL, is a fair bit of work. See https://github.com/mesonbuild/meson/issues/2835
-2. That Cython support for Meson needs to be completed.
-3. For codegen targets in combination with Cython, it looks like we need https://github.com/mesonbuild/meson/pull/8775/.
+The frontend will always call `build_sdist` to build an Sdist, and
+`build_wheel` to build a wheel.  It's up to the frontend whether to try
+calling the other optional backend functions like
+`get_requires_for_build_sdist`.
 
-We can work around both (2) and (3) I believe, by extensive use of `custom_target()`, but it'll be super verbose and clunky, so don't really want to do that.
+[PEP 660](https://www.python.org/dev/peps/pep-0660/) added three optional
+build backend callables to work with *editable installs*.  Editable installs
+are installs where the Python and compiled files for the package being
+imported are still in their source tree.  The optional callables are:
 
-(2) and (3) are both being implemented by @dcbaker, so a big thank you to him.
+* `build_editable`
+* `get_requires_for_build_editable`
+* `prepare_metadata_for_build_editable`
 
-We should probably use our own fork of Meson for a bit that is like an integration branch of upstream for 1-3. And then once we're completely happy, contribute the BLAS/LAPACK detection upstream.
+with the obvious interpretations.
 
+See also [PEP 621](https://www.python.org/dev/peps/pep-0621/) for more specifications for storing project metadata.
 
-## Can we start a long-term branch in this repo?
+## Some backends implementing PEP517
 
-Right now the strategy I used in my fork is:
-- add 17 WIP commits that remove each of the SciPy submodules in one go, one commit per submodule
-- when working on adding Meson support to a new submodule, drop the relevant commit via an interactive rebase
-- add the required `meson.build`, ensure things build cleanly and tests pass
-- the build log is very clean, so the occasional build warnings can be more easily fixed in SciPy itself (try for: everything except warnings from vendored Fortran code and the deprecated NumPy API warnings)
+* *Setuptools*.  Have a look at `setuptools.build_meta.__legacy__` for the
+  build backend functions above.
+* *Flit*: `flit.buildapi`. (only handles pure-Python packages).
+* [Enscons](https://pypi.org/project/enscons): `enscons.api`.  Uses the [Scons
+  build dependency system](https://scons.org) to do the work of building.
+* [Mesonpep517 package](https://thiblahute.gitlab.io/mesonpep517):
+  `mesonpep517.buildapi`.  Uses Meson as build sub-system.
+* [Mesonpy package](https://github.com/FFY00/mesonpy): `mesonpy` Uses Meson as
+  build sub-system.
+* [pep517 package](https://pypi.org/project/pep517): `pep517.envbuild`.
+* [PDM PEP517](https://pypi.org/project/pdm-pep517): `pdm.pep517.api`.
 
-This rebase strategy obviously doesn't work well when multiple people are collaborating on the same branch, if it's in the main repo (with a few people it does work on a fork). Also, CI runs on the main repo are not all that useful. So my preference would be to push it a little further in my own fork; once we have BLAS/LAPACK working we can add support for more submodules quickly. And then also make CI work on the fork first, so we can deal with Windows, building wheels, etc. Using PRs to my repo should work for that - I'd love some help though.
+There is some [discussions of a PEP517 build backend for
+scikit-build](https://github.com/scikit-build/scikit-build/issues/124).
 
-Once we have most submodules done and some working CI, then I think it's time to move to this repo.
+## PEP517 build frontends
 
-The one thing we should probably do now to make life easier is to create a `scipy/meson` repo with an integration branch. Making people install code that lives in a WIP PR to Meson isn't ideal.
+* Pip (`pip wheel`)
+* Flit (`flit build`)
+* [Build package](https://github.com/pypa/build): `python -m build`
+* [pep517 package](https://pypi.org/project/pep517): The high-level build
+  calls are now [deprecated](https://github.com/pypa/pep517/pull/83).
+
+## Backends not implementing PEP517
+
+These are backends that replace, extend or hijack the `setup.py` Setuptools backend to do the work of building.
+
+* Numpy distutils.
+* [Scikit-build](https://scikit-build.readthedocs.io): Use with `from skbuild
+  import setup` in `setup.py` file.  Uses CMake internally for building.

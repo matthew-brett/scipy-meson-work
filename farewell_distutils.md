@@ -137,7 +137,27 @@ compiler already installed and configured on their system.
 The solution to this problem was the [Wheel format
 specification](https://www.python.org/dev/peps/pep-0427).  This defined
 a simple zip-file layout to store files that can be directly installed,
-including pre-built compiled binaries, such as Python extensions.
+including pre-built compiled binaries, such as Python extensions.  Making
+a wheel file is relatively simple; it involves preparing the package directory
+or directories that will be copied to the Python PATH, along with directories
+containing some meta-data about the package(s).
+
+For example, let's say I have simple Python package called
+`fakepkg1`, at version 1.0.  If I build a wheel file on Mac I might end up with
+a filename something like `fakepkg1-1.0-cp36-abi3-macosx_10_9_universal2.whl`,
+and it will likely contain only the following directories:
+
+```
+fakepkg1
+fakepkg1-1.0.dist-info
+```
+
+where the `fakepkg1` directory contains the files that the installer will copy
+directly to my Python installation, and the `.dist-info` directory is
+a structured set of meta-data about the package.  Notice that that this
+particular wheel name tells me and installer tools that this package has binary
+files that will run with CPython 3.6 and higher (`cp36-abi3`), on macOS 10.9 or
+higher (`macosx_10_9`), and on Intel or M1 architecture (`universal2`).
 
 After integration with Pip, and the PyPI, this meant that the release manager
 for packages like Scipy could build a Wheel for each platform and Python
@@ -181,7 +201,7 @@ and should be separable.
 
 Tom Kluver's [Flit](https://flit.readthedocs.io) tool was an early development
 of this thinking.  Flit is a Python command line package that greatly
-simplifies builds of Sdists and wheels for pure-Python packages, and does not
+simplifies builds of sdists and wheels for pure-Python packages, and does not
 use Setuptools or Distutils.
 
 [PEP 517](https://www.python.org/dev/peps/pep-0517/) has a good discussion of
@@ -189,12 +209,14 @@ the analysis of various packaging concerns.  The PEP distinguishes the
 following tasks within the general umbrella of package management.
 
 * *Integration frontend* - a tool that accepts a set of package requirements,
-  and installs these packages on the user's system.  In the command `pip install numpy scipy`, pip is acting as an integration frontend.
+  and installs these packages on the user's system.  In the command `pip
+  install numpy scipy`, pip is acting as an integration frontend.  We can also
+  call integration frontends *installers*.
 * *Build frontend* - a tool that accepts a source tree (such as an unpackaged
   source code archive or version control checkout), and builds a Wheel or a
-  source distribution (Sdist). In the command `pip wheel ./`, Pip is acting as
+  source distribution (sdist). In the command `pip wheel ./`, Pip is acting as
   a build frontend for a wheel. `flit build` has flit acting as a build
-  frontend for both wheels and Sdists.
+  frontend for both wheels and sdists.
 * *Build backend* - the tool that the *build frontend* is using to compile the
   files comprising the wheel.   For most packages this will end up being
   Setuptools (Distutils+), but there are other implementations we will come onto soon.
@@ -214,8 +236,30 @@ building is done by each source tree's *build backend*. In a command like `pip
 wheel some-directory/`, pip is acting as a build
 frontend.
 
+We would also distinguish the *build backend* from the *build engine*.
+
+The work of the build backend, in building a wheel, is to:
+
+1. Make a *distribution tree* that has the directories and files as they will
+   be installed.
+2. Compile and link any binary files using suitable compiler and compiler flags.
+3. Put the resulting binary files into their correct final locations in the
+   distribution tree.
+4. Prepare a suitable meta-data (`.dist-info`) directory for the wheel in the
+   distribution tree.
+5. Zipping up the distribution tree to form a wheel.
+
+For packages with a lot of compiled code, step 3 is the long, hard part of the
+task.  We call the system to do this work of compiling and linking — the *build engine*.  It's
+
 Notice that the traditional use of Setuptools/Distutils+ means that Setuptools
-acts as both a build frontend and a build backend.
+acts as a build frontend *and* a build backend *and* a build engine.
+Specifically, traditional packages with compiled code use routines from
+Setuptools / Distutils to *call into other routines* in Setuptools / Distutils,
+in order to do the work of compiling and linking.  As we will see soon, other
+systems use other specialized build engines, such as
+[Meson](https://mesonbuild.com/), [CMake](https://cmake.org) and
+[SCons](https://scons.org).
 
 PEP 517 was designed to define the standards that make it possible to write
 and use new build frontends and backends, so that we (the packagers) no longer
@@ -233,7 +277,7 @@ the build frontend and backend.  PEP517 gives the example of using the `flit` to
     build-backend = "flit.buildapi"
 ```
 
-This example says that, in order to build wheels or source distributions (Sdists), we
+This example says that, in order to build wheels or source distributions (sdists), we
 
 The build backend object must implement at least these Python callables:
 
@@ -253,7 +297,7 @@ The build backend may also implement these callables:
 * `prepare_metadata_for_build_wheel` (prepares `.dist-info` directory
   containing wheel metadata for wheel to be build).
 
-The frontend will always call `build_sdist` to build an Sdist, and
+The frontend will always call `build_sdist` to build an sdist, and
 `build_wheel` to build a wheel.  It's up to the frontend whether to try
 calling the other optional backend functions like
 `get_requires_for_build_sdist`.
@@ -274,32 +318,59 @@ See also [PEP 621](https://www.python.org/dev/peps/pep-0621/) for more specifica
 ## Some backends implementing PEP517
 
 * *Setuptools*.  Have a look at `setuptools.build_meta.__legacy__` for the
-  build backend functions above.
-* *Flit*: `flit.buildapi`. (only handles pure-Python packages).
-* [Enscons](https://pypi.org/project/enscons): `enscons.api`.  Uses the [Scons
-  build dependency system](https://scons.org) to do the work of building.
+  build backend functions above.  The build engine depends on what you do in
+  your `setup.py` file, but this will typically be the build utilities in
+  Setuptools / Distutils.
+* *Flit*: `flit.buildapi`. This only handles pure-Python packages, and
+  therefore does not need a build engine.  Flit contains its own Python code
+  for Wheel and sdist creation.
+* [Enscons](https://pypi.org/project/enscons): `enscons.api`.  Enscons uses
+  Scons as its build engine.
 * [Mesonpep517 package](https://thiblahute.gitlab.io/mesonpep517):
-  `mesonpep517.buildapi`.  Uses Meson as build sub-system.
+  `mesonpep517.buildapi`.  Uses Meson as the build engine.
 * [Mesonpy package](https://github.com/FFY00/mesonpy): `mesonpy` Uses Meson as
-  build sub-system.
+  build engine.
 * [pep517 package](https://pypi.org/project/pep517): `pep517.envbuild`.
 * [PDM PEP517](https://pypi.org/project/pdm-pep517): `pdm.pep517.api`.
 
-There is some [discussions of a PEP517 build backend for
+There is some [discussion of a PEP517 build backend for
 scikit-build](https://github.com/scikit-build/scikit-build/issues/124).
+Scikit-build uses CMake for code compilation, which would mean that the PEP517
+Scikit-build backend would using CMake as a build engine, in our terminology.
 
 ## PEP517 build frontends
 
-* Pip (`pip wheel`)
-* Flit (`flit build`)
-* [Build package](https://github.com/pypa/build): `python -m build`
+* [Build package](https://github.com/pypa/build): `python -m build`.  The work
+  of the frontend is fairly simple, and Build provides a simple implementation that is a reasonable place to start.
+* Pip (`pip wheel`).  Although this is a very common way to build wheels, Pip
+  only builds wheels, and not sdists.
+* Flit (`flit build`). Builds wheels and sdists.  Only builds pure-Python
+  packages.
 * [pep517 package](https://pypi.org/project/pep517): The high-level build
   calls are now [deprecated](https://github.com/pypa/pep517/pull/83).
 
 ## Backends not implementing PEP517
 
-These are backends that replace, extend or hijack the `setup.py` Setuptools backend to do the work of building.
+These are backends that replace, extend or hijack the `setup.py` Setuptools backend to do the work of building.  One common option is to extend the Setuptools / Distutils as a *build engine*.
 
-* Numpy distutils.
+* Numpy distutils.  Numpy distutils extends Setuptools / Distutils in various
+  ways, including much utility code for dealing with compiling Fortran, and for custom configuration of sub-packages.
 * [Scikit-build](https://scikit-build.readthedocs.io): Use with `from skbuild
-  import setup` in `setup.py` file.  Uses CMake internally for building.
+  import setup` in `setup.py` file.  Scikit-build uses CMake as a build engine.
+
+## Integration frontend
+
+For the reasons we have given above, it is reasonable to call integration
+frontends — *installers*.
+
+Current popular options are:
+
+* Pip.
+* [Poetry](https://python-poetry.org).
+* [PDM](https://github.com/pdm-project/pdm)
+
+See [this comparison of Pip and
+Poetry](https://stackoverflow.com/a/58218593/1939576), and this [review of
+Poetry and PDM
+metrics](https://dev.to/frostming/a-review-pipenv-vs-poetry-vs-pdm-39b4) by the
+author of PDM.

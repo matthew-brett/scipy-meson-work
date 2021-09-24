@@ -242,17 +242,20 @@ We would also distinguish the *build backend* from the *build system*.
 
 The work of the build backend, in building a wheel, is to:
 
-1. Make a *distribution tree* that has the directories and files as they will
+1. *Prepare distribution tree* that has the directories and files as they will
    be installed.
-2. Compile and link any binary files using suitable compiler and compiler flags.
-3. Put the resulting binary files into their correct final locations in the
-   distribution tree.
-4. Prepare a suitable meta-data (`.dist-info`) directory for the wheel in the
-   distribution tree.
-5. Zipping up the distribution tree to form a wheel.
+2. *Compile and link* any binary files using suitable compiler and
+   compiler flags.
+3. *Place binary files* into their correct final locations in the distribution
+   tree.
+4. *Write meta-data* as a conforming (`.dist-info`) directory for the wheel in
+   the distribution tree.
+5. *Zip up* the distribution tree to form a wheel.
+6. [Post-processing on the wheel](./package_external_libraries.md)
 
-For packages with a lot of compiled code, step 3 is the long, hard part of the
-task.  We call the system to do this work of compiling and linking — the *build system*.  It's
+For packages with a lot of compiled code, the *compile and link* step is the
+long, hard part of the task.  We call the system to do this work of compiling
+and linking — the *build system*.  It's
 
 Notice that the traditional use of Setuptools/Distutils+ means that Setuptools
 acts as a build frontend *and* a build backend *and* a build system.
@@ -318,6 +321,47 @@ building outside the source tree, and this will make it very difficult to
 support editable installs.
 
 See also [PEP 621](https://www.python.org/dev/peps/pep-0621/) for more specifications for storing project metadata.
+
+## On the integration frontend
+
+The *integration frontend* as defined in PEP517 has two roles, that we want to
+distinguish.   First we define a new term -- a *shippable package*.  A
+shippable package is a package that needs no or minimal further work to install
+into the Python PATH.  Wheels are examples of shippable packages, because they
+contain the distribution tree, with all code compiled, as are Conda packages.
+
+Sdists and other source trees are not shippable packages, because the installer
+has to work out what extra build steps need to be done, and do them, before
+installing the packages.  We call these *source packages*.  In the case of a pure-Python package, this work is very simple, but it is still work.
+
+With that distinction, we refine the tasks that an *integration frontend* has to do.
+
+* *Shippable package installer*.  In this role, the integration frontend
+  accepts a list of package requirements, or *shippable package* filenames,
+  *resolves* the resulting list of packages that have to be installed,
+  including package *dependencies*, then, as necessary *downloads* and
+  *installs* the resulting set of packages.   This is how `conda install`
+  works, because `conda` packages are always shippable.  Pip performs only this
+  role only when all the resulting packages are wheels.
+* *Package builder*.  Integration frontends may be asked to install from a
+  source tree, or find that they can only get an sdist for a particular
+  dependency.  In this case, the integration frontend also functions as, or
+  calls into, a *build frontend*.
+
+With this distinction, we see that Conda is a shippable package installer, and
+not an integration frontend.  Pip is shippable package installer and a package
+builder, and therefore, is an integration frontend.
+
+See the sketchy diagram below for a simple representation of the various parts
+PEP517 defines, and that we distinguish here.
+
+![](package_concerns.jpg)
+
+Notice that PEP517 specifies that the build frontend can depend on other Python
+packages, and, in particular, on the build backend.  Then, the build backend
+may install packages that the build depends on.  This means that the build
+frontend and the build backend much have access to a shippable package
+installer, or a full integration frontend.
 
 ## Some backends implementing PEP517
 

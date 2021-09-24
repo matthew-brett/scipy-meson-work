@@ -5,6 +5,9 @@ This is a discussion of Python packaging as of fall 2021.
 In part it is an introduction to what is changing, and a set of pointers for
 those who are interested to plan for these changes.
 
+If you want some very high-level advice on what system to use for packaging,
+skip all the way to the end.
+
 ## Not in this page
 
 This discussion is about the official Python packaging options, designed to
@@ -178,20 +181,14 @@ different platforms and Python versions, e.g.:
   10.9, and Python version 3.7 and
 * `scipy-1.7.1-cp39-cp39-win_amd64.whl` for 64-bit Windows and Python 3.9.
 
-The initial and current solution to the problem of external libraries was
-a crude one — identify all the linked external libraries for compiled binaries
-in the wheel, and copy these into the Wheel, while resetting the binary files
-to point to these library copies.  The [Delocate
-utility](https://github.com/matthew-brett/delocate) does this job on macOS, and
-later, [auditwheel](https://github.com/pypa/auditwheel) implemented the
-equivalent functionality for Linux.
-[Delvewheel](https://github.com/adang1345/delvewheel) looks like it does
-something similar on Windows, but it does not yet appear to be widely used. See
-the discussion
-[here](https://discuss.python.org/t/delocate-auditwheel-but-for-windows/2589)
-for more detail and more links.
+We don't go into this here, but wheels that need to work on many different
+systems often need some post-processing to vendor and relink external libraries
+that the code depends on.  See the [package external libraries
+page](./package_external_libraries.md) for more detail.
 
-For example, Pip has a `wheel` subcommand that accepts a source tree directory (see above) and can build a wheel for the system on which Pip is running:
+On way of building wheels is to use the `wheel` subcommand of Pipe, that
+accepts a source tree directory (see above) and can build a wheel for the
+system on which Pip is running:
 
 ```bash
 cd my_package
@@ -316,7 +313,9 @@ imported are still in their source tree.  The optional callables are:
 * `get_requires_for_build_editable`
 * `prepare_metadata_for_build_editable`
 
-with the obvious interpretations.
+with the obvious interpretations.  Some build systems, such as Meson, insist on
+building outside the source tree, and this will make it very difficult to
+support editable installs.
 
 See also [PEP 621](https://www.python.org/dev/peps/pep-0621/) for more specifications for storing project metadata.
 
@@ -379,3 +378,13 @@ Poetry](https://stackoverflow.com/a/58218593/1939576), and this [review of
 Poetry and PDM
 metrics](https://dev.to/frostming/a-review-pipenv-vs-poetry-vs-pdm-39b4) by the
 author of PDM.
+
+## Your package, our advice
+
+Perhaps you did not want to know the whole story, you just wanted some current advice.  Or perhaps you want to know the whole story, but not exactly now.  Here is our current advice, as developers with a lot of experience of Python packaging of various sorts:
+
+*   If you have a pure Python package — use Flit.
+*   If you have a package with a simple C/Cython extension - (continue to) use
+    Setuptools.
+*   If you have more complex compiled code, perhaps including Fortran, C++ or
+    Rust — use Meson, or CMake via Scikit-build.

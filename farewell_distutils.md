@@ -325,31 +325,31 @@ See also [PEP 621](https://www.python.org/dev/peps/pep-0621/) for more specifica
 ## On the integration frontend
 
 The *integration frontend* as defined in PEP517 has two roles, that we want to
-distinguish.   First we define a new term -- a *shippable package*.  A
-shippable package is a package that needs no or minimal further work to install
-into the Python PATH.  Wheels are examples of shippable packages, because they
+distinguish.   First we define a new term -- a *built package*.  A
+built package is a package that needs no or minimal further work to install
+into the Python PATH.  Wheels are examples of built packages, because they
 contain the distribution tree, with all code compiled, as are Conda packages.
 
-Sdists and other source trees are not shippable packages, because the installer
+Sdists and other source trees are not built packages, because the installer
 has to work out what extra build steps need to be done, and do them, before
 installing the packages.  We call these *source packages*.  In the case of a pure-Python package, this work is very simple, but it is still work.
 
 With that distinction, we refine the tasks that an *integration frontend* has to do.
 
-* *Shippable package installer*.  In this role, the integration frontend
-  accepts a list of package requirements, or *shippable package* filenames,
+* *Built package installer*.  In this role, the integration frontend
+  accepts a list of package requirements, or *built package* filenames,
   *resolves* the resulting list of packages that have to be installed,
   including package *dependencies*, then, as necessary *downloads* and
   *installs* the resulting set of packages.   This is how `conda install`
-  works, because `conda` packages are always shippable.  Pip performs only this
+  works, because `conda` packages are always built.  Pip performs only this
   role only when all the resulting packages are wheels.
 * *Package builder*.  Integration frontends may be asked to install from a
   source tree, or find that they can only get an sdist for a particular
   dependency.  In this case, the integration frontend also functions as, or
   calls into, a *build frontend*.
 
-With this distinction, we see that Conda is a shippable package installer, and
-not an integration frontend.  Pip is shippable package installer and a package
+With this distinction, we see that Conda is a built package installer, and
+not an integration frontend.  Pip is a built package installer and a package
 builder, and therefore, is an integration frontend.
 
 See the sketchy diagram below for a simple representation of the various parts
@@ -360,7 +360,7 @@ PEP517 defines, and that we distinguish here.
 Notice that PEP517 specifies that the build frontend can depend on other Python
 packages, and, in particular, on the build backend.  Then, the build backend
 may install packages that the build depends on.  This means that the build
-frontend and the build backend much have access to a shippable package
+frontend and the build backend much have access to a built package
 installer, or a full integration frontend.  Worse than that, the user will
 probably not want these packages to appear in their current Python environment,
 just because they have run the build step, so the integration frontend also

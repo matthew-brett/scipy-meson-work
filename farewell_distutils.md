@@ -241,7 +241,7 @@ building is done by each source tree's *build backend*. In a command like `pip
 wheel some-directory/`, pip is acting as a build
 frontend.
 
-We would also distinguish the *build backend* from the *build engine*.
+We would also distinguish the *build backend* from the *build system*.
 
 The work of the build backend, in building a wheel, is to:
 
@@ -255,14 +255,14 @@ The work of the build backend, in building a wheel, is to:
 5. Zipping up the distribution tree to form a wheel.
 
 For packages with a lot of compiled code, step 3 is the long, hard part of the
-task.  We call the system to do this work of compiling and linking — the *build engine*.  It's
+task.  We call the system to do this work of compiling and linking — the *build system*.  It's
 
 Notice that the traditional use of Setuptools/Distutils+ means that Setuptools
-acts as a build frontend *and* a build backend *and* a build engine.
+acts as a build frontend *and* a build backend *and* a build system.
 Specifically, traditional packages with compiled code use routines from
 Setuptools / Distutils to *call into other routines* in Setuptools / Distutils,
 in order to do the work of compiling and linking.  As we will see soon, other
-systems use other specialized build engines, such as
+systems use other specialized build systems, such as
 [Meson](https://mesonbuild.com/), [CMake](https://cmake.org) and
 [SCons](https://scons.org).
 
@@ -323,25 +323,25 @@ See also [PEP 621](https://www.python.org/dev/peps/pep-0621/) for more specifica
 ## Some backends implementing PEP517
 
 * *Setuptools*.  Have a look at `setuptools.build_meta.__legacy__` for the
-  build backend functions above.  The build engine depends on what you do in
+  build backend functions above.  The build system depends on what you do in
   your `setup.py` file, but this will typically be the build utilities in
   Setuptools / Distutils.
 * *Flit*: `flit.buildapi`. This only handles pure-Python packages, and
-  therefore does not need a build engine.  Flit contains its own Python code
+  therefore does not need a build system.  Flit contains its own Python code
   for Wheel and sdist creation.
 * [Enscons](https://pypi.org/project/enscons): `enscons.api`.  Enscons uses
-  Scons as its build engine.
+  Scons as its build system.
 * [Mesonpep517 package](https://thiblahute.gitlab.io/mesonpep517):
-  `mesonpep517.buildapi`.  Uses Meson as the build engine.
+  `mesonpep517.buildapi`.  Uses Meson as the build system.
 * [Mesonpy package](https://github.com/FFY00/mesonpy): `mesonpy` Uses Meson as
-  build engine.
+  build system.
 * [pep517 package](https://pypi.org/project/pep517): `pep517.envbuild`.
 * [PDM PEP517](https://pypi.org/project/pdm-pep517): `pdm.pep517.api`.
 
 There is some [discussion of a PEP517 build backend for
 scikit-build](https://github.com/scikit-build/scikit-build/issues/124).
 Scikit-build uses CMake for code compilation, which would mean that the PEP517
-Scikit-build backend would using CMake as a build engine, in our terminology.
+Scikit-build backend would using CMake as a build system, in our terminology.
 
 ## PEP517 build frontends
 
@@ -356,12 +356,12 @@ Scikit-build backend would using CMake as a build engine, in our terminology.
 
 ## Backends not implementing PEP517
 
-These are backends that replace, extend or hijack the `setup.py` Setuptools backend to do the work of building.  One common option is to extend the Setuptools / Distutils as a *build engine*.
+These are backends that replace, extend or hijack the `setup.py` Setuptools backend to do the work of building.  One common option is to extend the Setuptools / Distutils as a *build system*.
 
 * Numpy distutils.  Numpy distutils extends Setuptools / Distutils in various
   ways, including much utility code for dealing with compiling Fortran, and for custom configuration of sub-packages.
 * [Scikit-build](https://scikit-build.readthedocs.io): Use with `from skbuild
-  import setup` in `setup.py` file.  Scikit-build uses CMake as a build engine.
+  import setup` in `setup.py` file.  Scikit-build uses CMake as a build system.
 
 ## Integration frontend
 

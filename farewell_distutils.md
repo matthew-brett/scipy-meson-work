@@ -361,7 +361,11 @@ Notice that PEP517 specifies that the build frontend can depend on other Python
 packages, and, in particular, on the build backend.  Then, the build backend
 may install packages that the build depends on.  This means that the build
 frontend and the build backend much have access to a shippable package
-installer, or a full integration frontend.
+installer, or a full integration frontend.  Worse than that, the user will
+probably not want these packages to appear in their current Python environment,
+just because they have run the build step, so the integration frontend also
+needs to be able to install into an isolated environment, an extra level of
+complexity.
 
 ## Some backends implementing PEP517
 

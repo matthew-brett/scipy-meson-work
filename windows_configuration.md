@@ -158,10 +158,29 @@ include_dirs = c:\opt\openblas\if_32\64\include
 
 From <https://anaconda.org/multibuild-wheels-staging/openblas-libs/v0.3.18/download/openblas-v0.3.18-win_amd64-gcc_8_1_0.zip>.
 
-E.g.
+e.g.
 
 ```
 wget `
     https://anaconda.org/multibuild-wheels-staging/openblas-libs/v0.3.18/download/openblas-v0.3.18-win_amd64-gcc_8_1_0.zip `
     -UseBasicParsing -OutFile openblas.zip
 ```
+
+## Flang
+
+<https://github.com/msys2/MINGW-packages/pull/9782>
+
+## msys configuration
+
+Follow instructions at <https://www.msys2.org>:
+
+* Download the installer: msys2-x86_64-20210725.exe
+* Run, install to `c:\msys64`, Run MSYS2.
+* `pacman -Syu`
+* Exit, run `MSYS MinGW UCRT 64-bit` from start menu.
+* `pacman -Su` again.
+
+Then:
+* `pacman -S --needed mingw-w64-ucrt-x86_64-toolchain`
+
+On threads: <https://github.com/meganz/mingw-std-threads>.

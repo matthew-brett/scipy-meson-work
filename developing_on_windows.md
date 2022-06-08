@@ -1,5 +1,4 @@
-w
-j# Developing and testing on Windows
+# Developing and testing on Windows
 
 This is a sketch of what I do to test builds on Windows.
 

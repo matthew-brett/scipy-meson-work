@@ -74,8 +74,8 @@ You will need:
 * A spare external drive of at least 64GB, on which to install Windows.  I was
   using a standard 128GB USB memory stick for this walkthrough.
 * A drive with about 2GB spare that can be mounted *from Windows*.  You will
-  use this to store the Apple Bootcamp drivers, for when you first boot your
-  Mac into Windows.  For example, you might have a spare USB memory stick
+  use this to store the Apple Bootcamp drivers, for use when you first boot
+  your Mac into Windows.  For example, you might have a spare USB memory stick
   formatted as ExFAT, that you can access from Mac or Windows.
 * A freely-downloadable [copy of Windows
   10](https://www.microsoft.com/en-gb/software-download/windows10ISO). This will come as an ISO file.
@@ -86,13 +86,22 @@ You will need:
 
 ### To prepare
 
-* Download the Windows 10 ISO file from the link above.  I selected options
-  "Windows 10 (multi-edition ISO)", "English" as the language, and "64-bit
-  Download".  The resulting file was `Win10_21H2_English_x64.iso`.  You'll be be using VirtualBox to install from this ISO file.
+* Download the [Windows 10 ISO
+  file](https://www.microsoft.com/en-gb/software-download/windows10ISO).  I
+  selected options "Windows 10 (multi-edition ISO)", "English (United States)"
+  as the language, and "64-bit Download".  The resulting file was
+  `Win10_21H2_English_x64.iso`. You'll be be using VirtualBox to install from
+  this ISO file.
+* Format your spare USB drive as MS-DOS (FAT), with "Scheme" as "Master Boot
+  Record" and name "BCDRIVERS".  Open the Mac Boot Camp Assistant. Select
+  "Download Windows Support Software" from the "Actions" menu.  Save the
+  offered "WindowsSupport" folder to the BCDRIVERS drive you have just
+  formatted.  When it has finished, check you have the "WindowsSupport" folder
+  on your USB stick.
 * Make sure you have the wired mouse and maybe keyboard, as above.
 * I would unplug all external storage, other than the hard drive you will
-  install on, and the USB stick .  At various points I found the install
-  failed when running with some extra hard drives attached.
+  install on, and the USB stick, and then reboot.  At various points I found
+  the install failed when running with some extra hard drives attached.
 
 ### Configuration file for VirtualBox to use the disk you will install to
 
@@ -214,7 +223,8 @@ that's boring.   So, following Alessandro's page above, I highly recommend you:
 * Reboot and reset the PVRAM.  I'm not sure whether this is always needed, but
   I was getting frequent freezes when booting into Windows before I did this.
 * Reboot again, and hold the Alt key.  Select the EFI drive.
-* Continue your Windows install by 
+* Continue your Windows install by installing the BootCamp drivers from the
+  "BCDRIVERS" USB stick you prepared earlier.
 
 ### Using a Windows virtual machine
 

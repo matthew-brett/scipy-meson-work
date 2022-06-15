@@ -10,11 +10,28 @@ order of usefulness, at least to me.
 
 These are:
 
-1. Booting my (Mac) computer into Windows.
+1. Booting my (Intel Mac) computer into Windows.
 2. Using a Windows virtual machine with a fixed-size virtual hard drive.
 3. Running on a cloud virtual machine via Google Cloud or Azure.
 
-## Booting into Windows
+## Getting a free copy of Windows
+
+If you are running Windows on a local machine, you may need Windows install
+media.
+
+At time of writing (June 2022) you can get a free download of the [Windows 10 ISO
+install image](https://www.microsoft.com/en-gb/software-download/windows10ISO).
+I selected options "Windows 10 (multi-edition ISO)", "English (United States)"
+as the language, and "64-bit Download".  The resulting file was
+`Win10_21H2_English_x64.iso`.
+
+You can install from this ISO file in various ways.  In the "Activate Windows"
+install phase you can specify "I don't have a product key".  The installation
+that results does not appear to expire, but you'll have an unobtrusive
+"Activate Windows" reminder in the bottom right of your screen, and you can't
+customize the desktop appearance.
+
+## Native booting into Windows
 
 This is the best option for a long Windows session.  With a decent machine,
 this is noticeably more responsive than the other options.
@@ -26,6 +43,8 @@ of RAM to be comfortable running Windows 10.
 I boot Windows using an Intel Mac Mini desktop that I've upgraded to 32GB of
 RAM. The Intel part is important, because you [can't run Apple Bootcamp on the
 newer M1 Macs](https://support.apple.com/en-gb/HT201468).
+
+Note that, as of time of writing, you can get a free and functional download of Windows 10 
 
 There are two barriers to doing this, both of which can be fairly easily
 overcome:
@@ -86,12 +105,8 @@ You will need:
 
 ### To prepare
 
-* Download the [Windows 10 ISO
-  file](https://www.microsoft.com/en-gb/software-download/windows10ISO).  I
-  selected options "Windows 10 (multi-edition ISO)", "English (United States)"
-  as the language, and "64-bit Download".  The resulting file was
-  `Win10_21H2_English_x64.iso`. You'll be be using VirtualBox to install from
-  this ISO file.
+* Download the Windows 10 ISO file linked above. You'll be be using VirtualBox
+  to install from this ISO file.
 * Format your spare USB drive as MS-DOS (FAT), with "Scheme" as "Master Boot
   Record" and name "BCDRIVERS".  Open the Mac Boot Camp Assistant. Select
   "Download Windows Support Software" from the "Actions" menu.  Save the
@@ -100,8 +115,9 @@ You will need:
   on your USB stick.
 * Make sure you have the wired mouse and maybe keyboard, as above.
 * I would unplug all external storage, other than the hard drive you will
-  install on, and the USB stick, and then reboot.  At various points I found
-  the install failed when running with some extra hard drives attached.
+  install on, including the USB stick with the Bootcamp drivers, and then
+  reboot.  At various points I found the install failed when running with some
+  extra hard drives attached.
 
 ### Configuration file for VirtualBox to use the disk you will install to
 
@@ -220,13 +236,31 @@ that's boring.   So, following Alessandro's page above, I highly recommend you:
   as NTFS, as Windows requires.
 * Wait!
 * When the process is finished, "Power off the machine".
-* Reboot and reset the PVRAM.  I'm not sure whether this is always needed, but
-  I was getting frequent freezes when booting into Windows before I did this.
-* Reboot again, and hold the Alt key.  Select the EFI drive.
+* Reboot and [reset the
+  PVRAM](https://www.ifixit.com/Wiki/How_to_reset_NVRAM_and_PRAM_on_a_Mac).
+  I'm not sure whether this is always needed, but I was getting frequent
+  freezes when booting into Windows before I did this.
+* Reboot again, and hold the Alt key.  Select the EFI drive.  Allow Windows to
+  boot.  I was not getting a network connection, presumably due to missing Bootcamp drivers for the network interfaces, including the Ethernet port.
 * Continue your Windows install by installing the BootCamp drivers from the
-  "BCDRIVERS" USB stick you prepared earlier.
+  "BCDRIVERS" USB stick you prepared earlier.  Insert the USB stick.  With Explorer, navigate to the `WindowsSupport/BootCamp` directory, and run the `Setup.exe` file there.  For me this was very slow through "Enumerating pre-install package", and eventually stalled at the "Apple HAL" stage. The [TeacherNerd page](https://teachernerd.com/2020/01/21/installing-windows-10) has this helpful text:
 
-### Using a Windows virtual machine
+  > Note: If the Boot Camp installer hangs the first time you try to run it,
+  you will need to restart the computer. If you’re lucky, the WiFi driver and
+  Apple Software Update will have gotten installed before this happens. If so,
+  when you reboot the computer, you should be able to connect to the Internet,
+  which will allow you to install the Windows updates. After you’ve done that,
+  you may be able to use Apple Software Update to download a newer version of
+  the Boot Camp drivers and complete the process. If not, try installing them
+  again from the flash drive
+
+  I believe that sequence above does work.  When the Bootcamp install finally
+  stalls, in the first run through, close it with Task Manager, reboot, and
+  then try installing all available Windows Updates.  Finally, run the Apple
+  Software Updater to get and install the latest BootCamp drivers.  Consider
+  resetting the PVRAM (see above) if you're still having trouble.
+
+## Using a Windows virtual machine
 
 Here you just follow the usual steps to make a Windows virtual machine, along
 with a virtual disk file.  Use the ISO download linked above.  Choose "I don't
@@ -237,8 +271,8 @@ a VM with lots of memory.
 
 It did seem to make the [VM more
 responsive](https://www.techrepublic.com/article/how-to-improve-virtualbox-guest-performance-in-five-steps/)
-when I set it up with a large (100GB) *fixed-size* virtual disk, instead of
-the default dynamically resized disk
+when I set it up with a large (100GB) *fixed-size* virtual disk, instead of the
+default dynamically resized disk
 
 ### Setting up a cloud machine
 

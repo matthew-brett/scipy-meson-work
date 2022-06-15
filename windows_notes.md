@@ -1,4 +1,4 @@
-# Window configuration
+# Windows configuration
 
 In an elevated terminal:
 

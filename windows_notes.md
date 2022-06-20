@@ -184,3 +184,62 @@ Then:
 * `pacman -S --needed mingw-w64-ucrt-x86_64-toolchain`
 
 On threads: <https://github.com/meganz/mingw-std-threads>.
+
+## MS build tools
+
+As Admin:
+
+```powershell
+choco install visualstudio2019buildtools
+```
+
+Then run Visual Studio Installer from the Start menu, "Select Desktop Development with C++", and make sure the following are selected:
+
+* C++ / CLI support for v142 build tools
+* Optionally, MSVC v141 - VS2017 C++ x64/x86 build tools
+
+## Msys2
+
+From <https://www.msys2.org/docs/ci>
+
+```powershell
+Invoke-WebRequest -UseBasicParsing -uri "https://github.com/msys2/msys2-installer/releases/download/nightly-x86_64/msys2-base-x86_64-latest.sfx.exe" -OutFile msys2.exe
+.\msys2.exe -y -oC:\  # Extract to C:\msys64
+Remove-Item msys2.exe  # Delete the archive again
+C:\msys64\usr\bin\bash -lc ' '
+C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -Syuu'  # Core update
+C:\msys64\usr\bin\bash -lc 'pacman --noconfirm -Syuu'  # Normal update
+```
+
+Then install the toolchains:
+
+```powershell
+C:\msys64\usr\bin\bash -lc 'pacman -S --needed base-devel mingw-w64-ucrt-x86_64-toolchain'
+C:\msys64\usr\bin\bash -lc 'pacman -S --needed base-devel mingw-w64-i686-toolchain'
+# Maybe
+C:\msys64\usr\bin\bash -lc 'pacman -S --needed base-devel mingw-w64-x86_64-toolchain'
+```
+
+## DLL diagnostics
+
+* <https://github.com/adamrehn/dll-diagnostics>
+
+## Vim
+
+I needed to move the default Git vim out of the way to allow Git to work with
+my Vim configuration.
+
+To do this, as Administrator, I did this:
+
+```powershell
+cd 'C:\Program Files\Git\usr\bin'
+mv vim.exe vim.exe.bak
+```
+
+Then I made a new file `vim`, with contents:
+
+```
+#!/bin/sh
+
+exec /c/tools/vim/vim82/vim.exe "$@"
+```

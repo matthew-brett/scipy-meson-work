@@ -99,7 +99,7 @@ $installed_path="$PWD\build\Lib\site-packages"
 $scipy_path = "${installed_path}\scipy"
 $libs_path = "${scipy_path}\.libs"
 mkdir ${libs_path}
-$ob_path = (pkg-config --variable libdir openblas) -replace "lib", "bin"
+$ob_path = (cygpath --windows (pkg-config --variable libdir openblas)) -replace "lib", "bin"
 cp $ob_path/*.dll $libs_path
 # Write _distributor_init.py to scipy dir to load .libs DLLs.
 & python tools\openblas_support.py --write-init $scipy_path
